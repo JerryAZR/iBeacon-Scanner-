@@ -55,7 +55,7 @@ def returnnumberpacket(pkt):
     return myInteger 
 
 def returnstringpacket(pkt):
-    myString = "";
+    myString = ""
     for c in pkt:
         myString +=  "%02x" %struct.unpack("B",c.to_bytes(1, 'big'))[0]
     return myString 
