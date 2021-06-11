@@ -14,7 +14,7 @@ class beaconAd:
         self.minor = minor
         self.tx_power = tx_power
         self.rssi = rssi
-    
+
     @classmethod
     def from_str(cls, adstring):
         adlist = adstring.split(",")
@@ -100,7 +100,7 @@ if __name__ == "__main__":
         processes = []
 
         for i in range(num_sensors):
-            p = multiprocessing.Process(target=scan_once, args=[sock, major, rets])
+            p = multiprocessing.Process(target=scan_once, args=[sock, major, i, rets])
             processes.append(p)
             p.start()
 

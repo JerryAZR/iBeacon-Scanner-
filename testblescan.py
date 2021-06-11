@@ -6,7 +6,7 @@ import sys
 
 import bluetooth._bluetooth as bluez
 
-dev_id = 1
+dev_id = 2
 try:
     sock = bluez.hci_open_dev(dev_id)
     print("ble thread started")
