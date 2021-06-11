@@ -67,7 +67,7 @@ def sock_setup(dev_id):
     blescan.hci_enable_le_scan(sock)
     return sock
 
-def scan_once(sock, major, multip_val=None):
+def scan_once(sock, major, idx=0, return_array=None):
     returnedList = blescan.parse_events(sock, 100)
     print("----------")
     ad_count = 0
@@ -82,14 +82,15 @@ def scan_once(sock, major, multip_val=None):
         dist = total_dist / ad_count
     else:
         dist = float('inf')
-    if multip_val:
-        multip_val.value = dist
+    if return_array:
+        return_array[idx] = dist
     return dist
 
 if __name__ == "__main__":
     major = 3838
     sockets = []
     num_sensors = 1
+    rets = multiprocessing.Array("d", [0.0]*num_sensors, lock=True)
 
     for i in range(num_sensors):
         sock = sock_setup(i)
@@ -97,19 +98,13 @@ if __name__ == "__main__":
 
     while True:
         processes = []
-        rets = []
 
         for i in range(num_sensors):
-            ret = multiprocessing.Value("d", 0.0, lock=False)
-            p = multiprocessing.Process(target=scan_once, args=[sock, major, ret])
-            rets.append(ret)
+            p = multiprocessing.Process(target=scan_once, args=[sock, major, rets])
             processes.append(p)
             p.start()
 
         for p in processes:
             p.join()
 
-        for ret in rets:
-            print("{}; ".format(ret.value), end="")
-
-        print()
+        print(rets[:])
