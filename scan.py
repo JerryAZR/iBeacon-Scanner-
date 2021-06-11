@@ -25,6 +25,13 @@ class beaconAd:
         rssi = int(adlist[5])
         return cls(mac, uuid, major, minor, tx_power, rssi)
 
+    def distance(self):
+        ratio = self.rssi / self.tx_power
+        if ratio < 1.0:
+            return ratio ** 10
+        else:
+            return 0.89976 * (ratio ** 7.7095) + 0.111
+
 def scan_at(dev_id):
     try:
         sock = bluez.hci_open_dev(dev_id)
@@ -42,8 +49,9 @@ def scan_at(dev_id):
         print("----------")
         for beacon in returnedList:
             ad = beaconAd.from_str(beacon)
-            if ad.major == 3939:
+            if ad.major == 3838:
                 print(ad.uuid, ad.major, ad.minor, ad.tx_power, ad.rssi)
+                print("tx_power={}, rssi={}, distance={}".format(ad.tx_power, ad.rssi, ad.distance()))
 
 if __name__ == "__main__":
-    scan_at(1)
+    scan_at(0)
