@@ -2,6 +2,7 @@
 
 import blescan
 import sys
+import multiprocessing
 
 import bluetooth._bluetooth as bluez
 
@@ -53,5 +54,62 @@ def scan_at(dev_id):
                 print(ad.uuid, ad.major, ad.minor, ad.tx_power, ad.rssi)
                 print("tx_power={}, rssi={}, distance={}".format(ad.tx_power, ad.rssi, ad.distance()))
 
+def sock_setup(dev_id):
+    try:
+        sock = bluez.hci_open_dev(dev_id)
+        print("ble thread started")
+
+    except:
+        print("error accessing bluetooth device...")
+        sys.exit(1)
+
+    blescan.hci_le_set_scan_parameters(sock)
+    blescan.hci_enable_le_scan(sock)
+    return sock
+
+def scan_once(sock, major, multip_val=None):
+    returnedList = blescan.parse_events(sock, 100)
+    print("----------")
+    ad_count = 0
+    total_dist = 0
+    for beacon in returnedList:
+        ad = beaconAd.from_str(beacon)
+        if ad.major == major:
+            ad_count += 1
+            total_dist += ad.distance()
+
+    if ad_count > 0:
+        dist = total_dist / ad_count
+    else:
+        dist = float('inf')
+    if multip_val:
+        multip_val.value = dist
+    return dist
+
 if __name__ == "__main__":
-    scan_at(0)
+    major = 3838
+    sockets = []
+    num_sensors = 1
+
+    for i in range(num_sensors):
+        sock = sock_setup(i)
+        sockets.append(sock)
+
+    while True:
+        processes = []
+        rets = []
+
+        for i in range(num_sensors):
+            ret = multiprocessing.Value("d", 0.0, lock=False)
+            p = multiprocessing.Process(target=scan_once, args=[sock, major, ret])
+            rets.append(ret)
+            processes.append(p)
+            p.start()
+
+        for p in processes:
+            p.join()
+
+        for ret in rets:
+            print("{}; ".format(ret.value), end="")
+
+        print()
