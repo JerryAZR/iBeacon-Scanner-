@@ -2,36 +2,9 @@
 
 import blescan
 import sys
-import multiprocessing
-
+from beaconAd import beaconAd
 import bluetooth._bluetooth as bluez
 
-class beaconAd:
-    def __init__(self, mac, uuid, major, minor, tx_power, rssi) -> None:
-        self.mac = mac
-        self.uuid = uuid
-        self.major = major
-        self.minor = minor
-        self.tx_power = tx_power
-        self.rssi = rssi
-
-    @classmethod
-    def from_str(cls, adstring):
-        adlist = adstring.split(",")
-        mac = adlist[0]
-        uuid = adlist[1]
-        major = int(adlist[2])
-        minor = int(adlist[3])
-        tx_power = int(adlist[4])
-        rssi = int(adlist[5])
-        return cls(mac, uuid, major, minor, tx_power, rssi)
-
-    def distance(self):
-        ratio = self.rssi / self.tx_power
-        if ratio < 1.0:
-            return ratio ** 10
-        else:
-            return 0.89976 * (ratio ** 7.7095) + 0.111
 
 def scan_at(dev_id):
     try:
@@ -68,8 +41,7 @@ def sock_setup(dev_id):
     return sock
 
 def scan_once(sock, major, idx=0, return_array=None):
-    returnedList = blescan.parse_events(sock, 100)
-    print("----------")
+    returnedList = blescan.parse_events(sock, 5)
     ad_count = 0
     total_dist = 0
     for beacon in returnedList:
@@ -87,24 +59,17 @@ def scan_once(sock, major, idx=0, return_array=None):
     return dist
 
 if __name__ == "__main__":
-    major = 3838
+    major = 3839
     sockets = []
-    num_sensors = 1
-    rets = multiprocessing.Array("d", [0.0]*num_sensors, lock=True)
+    sensor_list = [1, 2]
+    rets = [0.0] * len(sensor_list)
 
-    for i in range(num_sensors):
+    for i in sensor_list:
         sock = sock_setup(i)
         sockets.append(sock)
 
     while True:
-        processes = []
-
-        for i in range(num_sensors):
-            p = multiprocessing.Process(target=scan_once, args=[sock, major, i, rets])
-            processes.append(p)
-            p.start()
-
-        for p in processes:
-            p.join()
-
-        print(rets[:])
+        for i in range(len(sensor_list)):
+            rets[i] = scan_once(sockets[i], major)
+        print("----------")
+        print(', '.join('{:.3f}'.format(f) for f in rets))
